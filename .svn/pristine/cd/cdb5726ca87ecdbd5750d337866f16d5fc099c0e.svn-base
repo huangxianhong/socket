@@ -1,0 +1,7 @@
+package com.zhangxuan.net.socket.access;
+
+
+
+public interface ServerCallback extends ClientCallback {
+	void onAccepted(Client client);
+}

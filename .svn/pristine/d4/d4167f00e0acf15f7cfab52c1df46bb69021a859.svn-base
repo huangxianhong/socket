@@ -1,0 +1,62 @@
+package com.zhangxuan.net.socket.convergence;
+
+import java.io.IOException;
+import java.sql.ClientInfoStatus;
+import java.util.ArrayList;
+import java.util.Hashtable;
+
+import com.zhangxuan.net.socket.access.AsyncTcpServer;
+import com.zhangxuan.net.socket.access.FrameTargetException;
+import com.zhangxuan.net.socket.access.Client;
+import com.zhangxuan.net.socket.access.Server;
+import com.zhangxuan.net.socket.access.ServerCallback;
+import com.zhangxuan.net.socket.model.AckFrame;
+import com.zhangxuan.net.socket.model.BinaryFrame;
+import com.zhangxuan.net.socket.model.Cmd;
+import com.zhangxuan.net.socket.model.CmdFrame;
+import com.zhangxuan.net.socket.model.CmdUtil;
+import com.zhangxuan.net.socket.model.Frame;
+import com.zhangxuan.net.socket.model.TextFrame;
+
+public abstract class CommunicationOld implements ServerCallback, Runnable {
+
+
+//	protected boolean checkRegistration(String clientId) {
+//		synchronized (clientInfo) {
+//			if (clientInfo.containsKey(clientId))
+//				return true;
+//		}
+//		return false;
+//	}
+//
+//	protected void send(Frame frame) throws FrameTargetException {
+//
+//	}
+
+
+	// protected void sendAck(Frame frame) {
+	// if (!needAck)
+	// return;
+	// Frame f = frame.replyFrame();
+	// frame.setSrc(getId());
+	// }
+
+	
+
+	protected void onAckFrameReceived(AckFrame frame) {
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+	// ClientInfo
+	
+}

@@ -1,0 +1,417 @@
+package com.zhangxuan.net.socket.convergence;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Hashtable;
+
+import com.zhangxuan.net.socket.access.AsyncTcpServer;
+import com.zhangxuan.net.socket.access.FrameTargetException;
+import com.zhangxuan.net.socket.access.IClient;
+import com.zhangxuan.net.socket.access.IServer;
+import com.zhangxuan.net.socket.access.ServerListener;
+import com.zhangxuan.net.socket.model.AckFrame;
+import com.zhangxuan.net.socket.model.BinaryFrame;
+import com.zhangxuan.net.socket.model.Cmd;
+import com.zhangxuan.net.socket.model.CmdFrame;
+import com.zhangxuan.net.socket.model.CmdUtil;
+import com.zhangxuan.net.socket.model.Frame;
+import com.zhangxuan.net.socket.model.TextFrame;
+
+public abstract class Communication implements ServerListener {
+
+	private final String tag = this.getClass().getSimpleName();
+	private final Hashtable<String, ArrayList<String>> hostClients = new Hashtable<>();
+	private final Hashtable<String, Hashtable<String, String>> clientInfo = new Hashtable<>();
+
+	private final Hashtable<String, HostInfo> hosts = new Hashtable<>();
+	private final ArrayList<String> trustedHosts = new ArrayList<>();
+	private IServer server = null;
+
+	private String id = null;
+	private String host = null;
+	private int port = 0;
+	private String securityCode = null;
+
+	CommunicationListener listener = null;
+
+	public Communication(Config config, CommunicationListener listener) throws IOException, Exception {
+		initConfig(config);
+		server = new AsyncTcpServer(null, port, this);
+	}
+
+	public Communication(String id, String host, int port, String securityCode, CommunicationListener listener) throws IOException, Exception {
+		if (id == null)
+			throw new IllegalArgumentException("id is null");
+		if (listener == null)
+			throw new IllegalArgumentException("listener is null");
+		if (host == null)
+			throw new IllegalArgumentException("host is null");
+		if (port == 0)
+			throw new IllegalArgumentException("port is 0");
+		this.listener = listener;
+		this.id = id;
+		this.host = host;
+		this.port = port;
+		this.securityCode = securityCode;
+		server = new AsyncTcpServer(null, port, this);
+	}
+
+	private void initConfig(Config config) {
+		if (config == null)
+			throw new IllegalArgumentException("config is invalid");
+		this.id = config.getInfo().getId();
+		this.host = config.getInfo().getHost();
+		this.port = config.getInfo().getPort();
+		this.securityCode = config.getInfo().getSecurityCode();
+		synchronized (hosts) {
+			this.hosts.putAll(config.getHosts());
+		}
+		synchronized (trustedHosts) {
+			this.trustedHosts.addAll(config.getTrustedHost());
+		}
+	}
+
+	public void start() {
+		if (server == null)
+			return;
+		server.start();
+	}
+
+	public void stop() {
+		if (server == null)
+			return;
+		server.stop();
+	}
+
+	protected boolean checkRegistration(String clientId) {
+		synchronized (clientInfo) {
+			if (clientInfo.containsKey(clientId))
+				return true;
+		}
+		return false;
+	}
+
+	// public void send(frame) throws UnknownFrameTargetException {
+	// BinaryFrame f = new BinaryFrame();
+	// f.setData(data.getBytes());
+	// send(f);
+	// }
+
+	protected void send(Frame frame) throws FrameTargetException {
+		if (frame == null)
+			throw new IllegalArgumentException("Frame is null");
+		log("send", frame.toString());
+		frame.setSrc(getId());
+		String dst = frame.getDst();
+		if (dst == null)
+			throw new IllegalArgumentException("can't find Frame's dst");
+		server.send(frame);
+	}
+
+	public void sendBinary(String hostid, byte[] data) throws FrameTargetException {
+		if (data == null)
+			return;
+		String clientid = findHostClient(hostid);
+		if (clientid == null)
+			throw new IllegalStateException("host is not online.");
+		BinaryFrame bf = new BinaryFrame();
+		bf.setData(data);
+		bf.setDst(clientid);
+		send(bf);
+	}
+
+	public void sendText(String hostid, String text) throws FrameTargetException {
+		if (text == null)
+			return;
+		String clientid = findHostClient(hostid);
+		if (clientid == null)
+			throw new IllegalStateException("host is not online.");
+		TextFrame tf = new TextFrame();
+		tf.setText(text);
+		tf.setDst(clientid);
+		send(tf);
+	}
+
+	// protected void sendAck(Frame frame) {
+	// if (!needAck)
+	// return;
+	// Frame f = frame.replyFrame();
+	// frame.setSrc(getId());
+	// }
+
+	public String getId() {
+		return id;
+	}
+
+	protected String getHost() {
+		return host;
+	}
+
+	protected int getPort() {
+		return port;
+	}
+
+	protected String getSecurityCode() {
+		return securityCode;
+	}
+
+	protected CommunicationListener getListener() {
+		return listener;
+	}
+
+	public void addTrustedHost(String host) {
+		if (host == null)
+			return;
+		synchronized (trustedHosts) {
+			if (!trustedHosts.contains(host))
+				trustedHosts.add(host);
+		}
+	}
+
+	public void delTrustedHost(String host) {
+		if (host == null)
+			return;
+		synchronized (trustedHosts) {
+			trustedHosts.remove(host);
+		}
+	}
+
+	@Override
+	public void onConnected(IClient client) {
+		log("onConnected", client.getId());
+		String hostid = client.getParameter("tmp-hostid");
+		if (hostid == null)
+			return;
+		HostInfo h = null;
+		synchronized (hosts) {
+			h = hosts.get(hostid);
+		}
+		if (h == null)
+			return;
+		Cmd cmd = CmdUtil.createHello(getId(), getSecurityCode(), hostid, h.getSecurityCode());
+		CmdFrame cf = new CmdFrame();
+		cf.setCmd(cmd);
+		client.send(cf);
+	}
+
+	@Override
+	public void onDisconnected(IClient client) {
+		if (client == null)
+			return;
+		log("onDisconnected", client.getId());
+		unregisterHostClient(client.getId());
+	}
+
+	@Override
+	public void onFrameReceived(Frame frame) throws Exception {
+		if (frame == null)
+			return;
+		String srcclient = frame.getSrc();
+		String srchost = getClientInfo(srcclient, "hostid");
+		if (frame instanceof CmdFrame) {
+			CmdFrame cf = (CmdFrame) frame;
+			onCmdFrameReceived(cf);
+		} else if (frame instanceof TextFrame) {
+			TextFrame sf = (TextFrame) frame;
+			sf.setSrc(srchost);
+			onTextFrameReceived(sf);
+		} else if (frame instanceof BinaryFrame) {
+			BinaryFrame bf = (BinaryFrame) frame;
+			bf.setSrc(srchost);
+			onBinaryFrameReceived(bf);
+		} else if (frame instanceof AckFrame) {
+
+		} else {
+			return;
+		}
+	}
+
+	protected void onCmdFrameReceived(CmdFrame frame) {
+		Cmd reqCmd = frame.getCmd();
+		if (reqCmd == null)
+			return;
+		String clientId = frame.getSrc();
+		if ("Hello".equals(reqCmd.getName())) {
+			if (!checkAuth(reqCmd))
+				server.close(frame.getSrc());
+			registerHost(reqCmd.getParameter("srcHost"), clientId);
+			Cmd rplCmd = CmdUtil.createHi();
+			rplCmd.setParameter("srcHost", getId());
+			CmdFrame cmdFrame = new CmdFrame();
+			cmdFrame.setDst(frame.getSrc());
+			cmdFrame.setCmd(rplCmd);
+			try {
+				server.send(cmdFrame);
+			} catch (FrameTargetException e) {
+			}
+		} else if ("Hi".equals(reqCmd.getName())) {
+			registerHost(reqCmd.getParameter("srcHost"), clientId);
+		} else {
+			CommunicationListener listener = getListener();
+			if (listener != null)
+				listener.onCmdReceived(reqCmd);
+		}
+	}
+
+	private boolean checkAuth(Cmd cmd) {
+		String srcHost = cmd.getParameter("srcHost");
+		String srcCode = cmd.getParameter("srcCode");
+		String dstHost = cmd.getParameter("dstHost");
+		String dstCode = cmd.getParameter("dstCode");
+		HostInfo sh = null;
+		synchronized (hosts) {
+			sh = hosts.get(srcHost);
+		}
+		if (sh == null)
+			return false;
+		if (!this.getId().equals(dstHost))
+			return false;
+		if (!this.getSecurityCode().equals(dstCode))
+			return false;
+		if (!sh.getSecurityCode().equals(srcCode))
+			return false;
+		return true;
+	}
+
+	protected void onAckFrameReceived(AckFrame frame) {
+	}
+
+	protected void registerHost(String hostid, String clientId) {
+		if (hostid == null || clientId == null)
+			return;
+		log("registerHost", "hostid=" + hostid + "\tclientid=" + clientId);
+		ArrayList<String> list = null;
+		synchronized (hostClients) {
+			list = hostClients.get(hostid);
+			if (list == null) {
+				list = new ArrayList<>();
+				hostClients.put(hostid, list);
+			}
+		}
+		synchronized (list) {
+			list.add(clientId);
+		}
+		registerClientInfo(clientId, "hostid", hostid);
+		log("registerHost", "Host " + hostid + " -> " + clientId + " is online.");
+	}
+
+	protected void unregisterHost(String hostid) {
+		if (hostid == null)
+			return;
+		log("unregisterHost", "hostid=" + hostid);
+		ArrayList<String> clients = null;
+		synchronized (hostClients) {
+			clients = hostClients.get(hostid);
+		}
+		hostClients.remove(hostid);
+		if (clients == null)
+			return;
+		synchronized (clientInfo) {
+			for (String clientid : clients) {
+				clientInfo.remove(clientid);
+			}
+		}
+		log("unregisterHost", "Host " + hostid + " is offline.");
+	}
+
+	protected void unregisterHostClient(String clientid) {
+		if (clientid == null)
+			return;
+		String hid = getClientInfo(clientid, "hostid");
+		if (hid == null)
+			return;
+		ArrayList<String> clients = null;
+		synchronized (hostClients) {
+			clients = hostClients.get(hid);
+		}
+		if (clients == null)
+			return;
+		clients.remove(clientid);
+		log("unregisterHostClient", "Host " + hid + " ->" + clientid + " is offline.");
+	}
+
+	protected String findHostClient(String hostid) {
+		if (hostid == null)
+			return null;
+		ArrayList<String> list = null;
+		synchronized (hostClients) {
+			list = hostClients.get(hostid);
+		}
+		if (list == null || list.size() == 0)
+			return null;
+		return list.get(0);
+	}
+
+	protected void registerClientInfo(String clientId, String key, String value) {
+		if (clientId == null || key == null || value == null)
+			return;
+		Hashtable<String, String> values = null;
+		synchronized (clientInfo) {
+			values = clientInfo.get(clientId);
+			if (values == null) {
+				values = new Hashtable<>();
+				clientInfo.put(clientId, values);
+			}
+		}
+		synchronized (values) {
+			values.put(key, value);
+		}
+	}
+
+	protected void unregisterClientInfo(String clientId, String key) {
+		if (clientId == null || key == null)
+			return;
+		Hashtable<String, String> values = null;
+		synchronized (clientInfo) {
+			values = clientInfo.get(clientId);
+		}
+		if (values == null)
+			return;
+		synchronized (values) {
+			values.remove(key);
+		}
+	}
+
+	protected String getClientInfo(String clientId, String key) {
+		if (clientId == null || key == null)
+			return null;
+		Hashtable<String, String> values = null;
+		synchronized (clientInfo) {
+			values = clientInfo.get(clientId);
+		}
+		if (values == null)
+			return null;
+		synchronized (values) {
+			return values.get(key);
+		}
+	}
+
+	public abstract void onBinaryFrameReceived(BinaryFrame frame) throws Exception;
+
+	public abstract void onTextFrameReceived(TextFrame frame) throws Exception;
+
+	public void connect(String hostid) throws Exception {
+		if (hostid == null || hostid.length() == 0)
+			throw new IllegalArgumentException("hostid is empty");
+		HostInfo h = null;
+		synchronized (hosts) {
+			h = hosts.get(hostid);
+		}
+		if (h == null)
+			throw new IllegalArgumentException("hostid is unknown : " + hostid);
+		String host = h.getHost();
+		int port = h.getPort();
+		IClient client = server.connect(host, port);
+		client.setParameter("tmp-hostid", hostid);
+	}
+
+	public void disconnect(String hostid) {
+		if (hostid == null)
+			return;
+
+	}
+
+	protected void log(String method, String msg) {
+		System.out.println(tag + " :: " + method + " : " + msg);
+	}
+}

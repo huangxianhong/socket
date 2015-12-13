@@ -1,0 +1,27 @@
+package com.zhangxuan.net.socket.access;
+
+public class UnknownFrameTargetException extends Exception {
+
+	private static final long serialVersionUID = 1L;
+
+	public UnknownFrameTargetException() {
+		super();
+	}
+
+	public UnknownFrameTargetException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+		super(message, cause, enableSuppression, writableStackTrace);
+	}
+
+	public UnknownFrameTargetException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
+	public UnknownFrameTargetException(String message) {
+		super(message);
+	}
+
+	public UnknownFrameTargetException(Throwable cause) {
+		super(cause);
+	}
+
+}

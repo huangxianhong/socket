@@ -1,0 +1,20 @@
+{
+    "info": {
+        "id": "hxh",
+        "host": "192.168.168.94",
+        "port": 5555,
+        "securityCode": "HUANGXIANHONG"
+    },
+    "hosts": {
+        "31": {
+            "id": "31",
+            "host": "192.168.168.94",
+            "port": 6666,
+            "securityCode": "31"
+        }
+    },
+    "trustedHost": [
+        "192.168.168.",
+        "111.111."
+    ]
+}

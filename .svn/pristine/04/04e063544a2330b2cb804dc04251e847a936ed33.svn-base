@@ -1,0 +1,13 @@
+package com.zhangxuan.net.socket.convergence;
+
+import com.zhangxuan.net.socket.model.Cmd;
+import com.zhangxuan.net.socket.model.Frame;
+
+public interface CommunicationListener {
+	void onDataReceived(Frame frame);
+
+	void onCmdReceived(Cmd cmd);
+
+	void onDataSent(String id);
+
+}

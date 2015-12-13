@@ -1,0 +1,26 @@
+{
+    "info": {
+        "id": "hxh",
+        "host": "192.168.168.94",
+        "port": 5555,
+        "securityCode": "HUANGXIANHONG"
+    },
+    "hosts": {
+        "lq": {
+            "id": "lq",
+            "host": "192.168.168.91",
+            "port": 5555,
+            "securityCode": "LONGQING"
+        },
+        "hlw": {
+            "id": "hlw",
+            "host": "192.168.168.55",
+            "port": 5555,
+            "securityCode": "HUANGLINGWEI"
+        }
+    },
+    "trustedHost": [
+        "192.168.168.",
+        "111.111."
+    ]
+}

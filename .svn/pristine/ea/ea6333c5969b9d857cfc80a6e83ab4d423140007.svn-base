@@ -1,0 +1,113 @@
+package com.zhangxuan.net.socket;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import com.zhangxuan.net.socket.access.IClient;
+import com.zhangxuan.net.socket.convergence.Communication;
+import com.zhangxuan.net.socket.convergence.CommunicationListener;
+import com.zhangxuan.net.socket.model.BinaryFrame;
+import com.zhangxuan.net.socket.model.Cmd;
+import com.zhangxuan.net.socket.model.Frame;
+import com.zhangxuan.net.socket.model.TextFrame;
+
+public class TestCommunication2 {
+	static Communication communication = null;
+
+	public static void main(String[] args) throws IOException, Exception {
+
+		CommunicationListener listener = new CommunicationListener() {
+
+			@Override
+			public void onDataSent(String id) {
+				System.out.println("listener : onDataSent " + id);
+			}
+
+			@Override
+			public void onDataReceived(Frame frame) {
+				System.out.println("listener : onDataReceived " + frame.getId());
+			}
+
+			@Override
+			public void onCmdReceived(Cmd cmd) {
+				System.out.println("listener : onCmdReceived " + cmd.getName());
+			}
+		};
+
+		communication = new Communication("TestCommunication2", listener) {
+
+			@Override
+			public void onAccepted(IClient client) {
+				System.out.println("onAccepted");
+			}
+
+			@Override
+			public void onFrameSent(String frameId) {
+				System.out.println("onFrameSent");
+			}
+
+			@Override
+			public void onBinaryFrameReceived(BinaryFrame frame) throws Exception {
+				System.out.println("onBinaryFrameReceived");
+			}
+
+			@Override
+			public void onTextFrameReceived(TextFrame frame) throws Exception {
+				// System.out.println("received Data:"+frame.getText());
+				System.out.println("onTexxtFrameReceived : from=" + frame.getSrc() + "\ttext=" + frame.getText());
+			}
+		};
+
+		communication.start();
+		commandMode();
+	}
+
+	static void commandMode() {
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		while (true) {
+			try {
+				String line = br.readLine().trim();
+				System.out.println("<CMD>  " + line);
+				String[] ss = line.split(" ");
+				if (ss.length <= 0)
+					continue;
+				executeLine(ss);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	static void executeLine(String[] args) {
+		String cmd = args[0];
+		switch (cmd) {
+		case "connect":
+			if (args.length != 2) {
+				System.out.println("help : connect (hostid)");
+				return;
+			}
+			try {
+				communication.connect(args[1]);
+			} catch (Exception e) {
+				System.out.println("*** " + e.toString());
+			}
+			break;
+		case "sendtext":
+			if (args.length != 3) {
+				System.out.println("help : sendtext (hostid) (text)");
+				return;
+			}
+			try {
+				communication.sendText(args[1], args[2]);
+			} catch (Exception e) {
+				System.out.println(e.toString());
+			}
+			break;
+		case "senddata":
+			break;
+		default:
+			break;
+		}
+	}
+}

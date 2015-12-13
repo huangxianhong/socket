@@ -1,0 +1,13 @@
+package com.zhangxuan.net.socket.access;
+
+import com.zhangxuan.net.socket.model.Frame;
+
+public interface ClientListener {
+	void onConnected(IClient client);
+
+	void onDisconnected(IClient client);
+
+	void onFrameReceived(Frame frame) throws Exception;
+
+	void onFrameSent(String frameId);
+}

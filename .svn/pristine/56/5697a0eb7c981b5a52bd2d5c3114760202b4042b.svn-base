@@ -1,0 +1,116 @@
+package com.zhangxuan.net.socket;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+
+import com.zhangxuan.net.socket.convergence.Communication;
+import com.zhangxuan.net.socket.convergence.CommunicationListener;
+import com.zhangxuan.net.socket.convergence.Config;
+
+public class CopyOfCommunicationTestApp {
+	private static final URL classPath = CopyOfCommunicationTestApp.class.getResource(".");
+	static Communication communication = null;
+	static Config eygoffice = getConfig("HxhOffice");
+	static Config eyghome = getConfig("EygHome");
+
+	public static Config getConfig(String configname) {
+		if (configname == null)
+			throw new IllegalArgumentException("config name is null");
+		if (!configname.endsWith(".config"))
+			configname += ".config";
+		String configFn = classPath.getPath() + configname;
+		Config config = Config.load(configFn);
+		return config;
+	}
+
+	public static void main(String[] args) throws IOException, Exception {
+		CommunicationListener listener = new TestCommunicationListener();
+		communication = new TestCommunication(eygoffice, listener);
+		communication.start();
+		commandMode();
+	}
+
+	static void commandMode() {
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		while (true) {
+			try {
+				String line = br.readLine().trim();
+				System.out.println("<CMD>  " + line);
+				String[] ss = line.split(" ");
+				if (ss.length <= 0)
+					continue;
+				executeLine(ss);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	static void executeLine(String[] args) {
+		String cmd = args[0];
+		switch (cmd) {
+		case "connect":
+			if (args.length != 2) {
+				System.out.println("help : connect (hostid)");
+				return;
+			}
+			try {
+				communication.connect(args[1]);
+			} catch (Exception e) {
+				System.out.println("*** " + e.toString());
+			}
+			break;
+		case "connects":
+			if (args.length != 3) {
+				System.out.println("help : connects (hostid) (count)");
+				return;
+			}
+			int cnt = Integer.valueOf(args[2]);
+			for (int i = 0; i < cnt; i++)
+				try {
+					communication.connect(args[1]);
+				} catch (Exception e) {
+					System.out.println("*** " + e.toString());
+				}
+			break;
+		case "sendtext":
+			if (args.length != 3) {
+				System.out.println("help : sendtext (hostid) (text)");
+				return;
+			}
+			try {
+				communication.sendText(args[1], args[2]);
+			} catch (Exception e) {
+				System.out.println(e.toString());
+			}
+			break;
+		case "sendtexts":
+			if (args.length != 4) {
+				System.out.println("help : sendtext (hostid) (text) (count)");
+				return;
+			}
+			int count = 0;
+			try {
+				count = Integer.valueOf(args[3]);
+			} catch (Exception e) {
+				e.printStackTrace();
+				break;
+			}
+			try {
+				for (int i = 0; i < count; i++)
+					communication.sendText(args[1], args[2] + " - " + i);
+			} catch (Exception e) {
+				System.out.println(e.toString());
+			}
+			break;
+		case "senddata":
+			break;
+		case "printhosts":
+			break;
+		default:
+			break;
+		}
+	}
+}
