@@ -31,7 +31,7 @@ public class ClientTestApp {
 					int id = pingFrame.getId();
 					System.out.println(id);
 				} else {
-					System.out.println("fffffffffffffff");
+					System.out.println("fffffffffffffffff");
 				}
 
 			}
