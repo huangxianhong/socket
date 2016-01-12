@@ -130,19 +130,6 @@ public abstract class Frame {
 		return ackFrame;
 	}
 
-	// public byte[] read(int limitSize) throws IOException {
-	// if (limitSize <= 0)
-	// throw new IllegalArgumentException("read size error");
-	// if (limitSize + readIndex > readTotal)
-	// limitSize = readTotal - readIndex;
-	// if (limitSize <= 0)
-	// return null;
-	// byte[] bs = onRead(limitSize);
-	// if (bs != null)
-	// readIndex += bs.length;
-	// return bs;
-	// }
-
 	public byte[] read(int limitSize) throws IOException {
 		if (limitSize == 0)
 			return null;

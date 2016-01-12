@@ -41,10 +41,10 @@ public class ClientTestApp {
 			}
 
 		};
-
-		AsyncTcpClient client = new AsyncTcpClient("192.168.31.100", 5555, cl);
-		client.start();
-
+		for (int i = 0; i < 10000; i++) {
+			AsyncTcpClient client = new AsyncTcpClient("127.0.0.1", 5555, cl);
+			client.start();
+		}
 		while (true) {
 			try {
 				System.out.print(".");

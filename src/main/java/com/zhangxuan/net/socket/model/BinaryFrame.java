@@ -11,37 +11,6 @@ public class BinaryFrame extends Frame {
 	private int dataLength = 0;
 	private byte[] data = null;
 
-	// @Override
-	// protected int onWrite(byte[] bs) throws IOException {
-	// int wi = 0;
-	// int rr = getWriteIndex();
-	// if (rr < 8) {
-	// if (bs.length < getWriteRemain())
-	// return 0;
-	// ByteBuffer bf = ByteBuffer.wrap(bs);
-	// int id = bf.getInt();
-	// int len = bf.getInt();
-	// wi += 8;
-	// setId(id);
-	// if (len > MAX_FRAME_SIZE)
-	// throw new IOException("Frame size too big");
-	// setDataLength(len);
-	// len += 8;
-	// setWriteTotal(len);
-	// return wi;
-	// }
-	// if (data == null) {
-	// data = bs;
-	// return bs.length;
-	// }
-	// int newSize = data.length + bs.length;
-	// byte[] tmp = new byte[newSize];
-	// System.arraycopy(data, 0, tmp, 0, data.length);
-	// System.arraycopy(bs, 0, tmp, data.length, bs.length);
-	// data = tmp;
-	// return bs.length;
-	// }
-
 	@Override
 	public void startToRead() {
 		super.startToRead();
@@ -49,42 +18,6 @@ public class BinaryFrame extends Frame {
 			setReadTotal(data.length + getHeaderSize());
 		}
 	}
-
-	// @Override
-	// protected byte[] onRead(int limit) throws IOException {
-	// int ri = getReadIndex();
-	// int rr = getReadRemain();
-	// if (rr < limit)
-	// limit = rr;
-	// byte[] tmp = null;
-	// if (ri <= 8) {
-	// ByteBuffer bf = ByteBuffer.allocate(8);
-	// bf.putInt(getId());
-	// if (data != null)
-	// bf.putInt(data.length);
-	// else
-	// bf.putInt(0);
-	// bf.flip();
-	// int t = 8 - ri;
-	// if (t >= 0) {
-	// tmp = new byte[t];
-	// bf.get(tmp, ri, t);
-	// limit -= t;
-	// }
-	// }
-	// if (limit <= 0)
-	// return tmp;
-	// byte[] tmpdata = new byte[limit];
-	// if (tmp == null) {
-	// System.arraycopy(data, ri - 8, tmpdata, 0, limit);
-	// return tmpdata;
-	// }
-	// ByteBuffer bf = ByteBuffer.allocate(tmp.length + tmpdata.length);
-	// bf.put(tmp);
-	// System.arraycopy(data, 0, tmpdata, 0, limit);
-	// bf.put(tmpdata);
-	// return bf.array();
-	// }
 
 	public int getDataLength() {
 		return dataLength;

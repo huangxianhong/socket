@@ -16,7 +16,7 @@ public class FrameTestApp {
 		// writeWholePingFrame();
 		// writeLimitPingFrame();
 		// writeWholeBinaryFrame();
-		writeLimitBinaryFrame();
+		writeWholeBinaryFrame();
 	}
 
 	static void readWholeBinaryFrame() throws IOException {
