@@ -1,7 +1,0 @@
-package com.zhangxuan.net.socket.access;
-
-
-
-public interface ServerListener extends ClientListener {
-	void onAccepted(IClient client);
-}
